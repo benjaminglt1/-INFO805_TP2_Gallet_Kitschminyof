@@ -30,3 +30,7 @@
 *.exe
 *.out
 *.app
+
+#qt
+MakeFile
+ray-tracer.pro
