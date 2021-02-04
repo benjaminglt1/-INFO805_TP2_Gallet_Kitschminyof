@@ -131,18 +131,35 @@ namespace rt {
 
       //3.3
       //recuperation du materiau
+      /*
       Material m = obj_i->getMaterial(p_i);
       
       return Color(m.ambient[0]+m.diffuse[0],m.ambient[1]+m.diffuse[1],m.ambient[2]+m.diffuse[2]);
+      */
+     //3.4
+     return illumination(ray,obj_i,p_i);
+     
     }
 
     //3.4
-    Color rt::Renderer::illumination(const Ray& ray,GraphicalObject* obj,Point p ){
+    Color illumination(const Ray& ray,GraphicalObject* obj,Point3 p ){
       Material m = obj->getMaterial(p);
       Color C = Color(0.0,0.0,0.0);
-      for(auto it = ptrScene->myLights.begin();it!=ptrScene->myLights.end();it++){
 
+      std::vector< Light* > lights = ptrScene->myLights;
+      for ( Light* l : lights ){
+          Vector3 L = l->direction(p);
+          Vector3 N = obj->getNormal(p);
+          Real kd = L.dot(N);
+          if(kd<0) kd=0.0;
+
+          Color D = m.diffuse;
+          Color B = l->color(p);
+
+          C = C + kd*D * B;
+          //C += kd*D;
       }
+      return C+m.ambient;
     }
 
   };

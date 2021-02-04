@@ -83,16 +83,16 @@ namespace rt {
                      GraphicalObject*& object, Point3& p )
     {
       //3.2
-      int estTouche=0;
+      Real estTouche=0.0;
       Real dmin = 999999999.9;
       Point3 pcour;
       GraphicalObject* obj;
       for(auto it = myObjects.begin(); it != myObjects.end(); it++){
           obj = *it;
-          Real r = obj->rayIntersection(ray,p);
-          if(r<0){
+          Real r = obj->rayIntersection(ray,pcour);
+          if(r<0.0){
             estTouche++;
-            Real dist = distance2(ray.origin,pcour);
+            Real dist = distance(pcour,ray.origin);
             if(dist<dmin){
               dmin = dist;
               p = pcour;
@@ -101,7 +101,7 @@ namespace rt {
             
           }
       }
-      if(estTouche>0){
+      if(estTouche>0.0){
         return -1.0f;
       }else{
         return 1.0f;

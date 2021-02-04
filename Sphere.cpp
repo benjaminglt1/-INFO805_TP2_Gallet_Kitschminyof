@@ -103,19 +103,21 @@ rt::Sphere::rayIntersection( const Ray& ray, Point3& p )
   Vector3 u = ray.direction;
 
   //calcul distance entre c et [o,u)
+  
     //calcul distance entre c et o
-  Vector3 co = c-o;
-    //calcul dist
-  Vector3 d = co.dot(u)*u;
-  d = co - d;
+  Vector3 co = o-c;
+  Vector3 v1 = co.dot(u)*u;
+  Vector3 v2 = co - v1;
+  rt::Real d = v2.norm();
+
     //calcul dist²
-  rt::Real d2 = d.norm()*d.norm(); 
+  rt::Real d2 = d*d; 
   //calcul r² 
   rt::Real r2 = r*r;
   
 
 
-  if(d2<=r2){
+  if(d2<r2){
     //calculer les deux intesections t_1 et t_2
     Point3 t_1,t_2;
     rt::Real b = 2*(u.dot(co));
@@ -124,26 +126,31 @@ rt::Sphere::rayIntersection( const Ray& ray, Point3& p )
     rt::Real delta = b*b-4*c;
     
     
-    if(delta>=0){
+    if(delta>0){
       //t_1 = (-b-sqrt(delta))/2a;
-      rt::Real t1 = (-b-sqrt(delta))/2;
+      rt::Real t1 = ((-1*b)-sqrt(delta))/2;
       //t_2 = (-b+sqrt(delta))/2a;
-      rt::Real t2 = (-b+sqrt(delta))/2;
+      rt::Real t2 = ((-1*b)+sqrt(delta))/2;
       t_1 = o + u*t1;
-      t_2 = o+ u*t2;
+      t_2 = o + u*t2;
 
 
     //recherche de la bonne intersection
     Point3 intersection;
-    if(t1<0){
-      intersection = t_1;
+    if(t2<0.0f){
+      return 1.0f;
+    }
+    else if(t1<0.0f){
+      p = t_2;
+      return -1.0f;
     }else{
-      intersection = t_2;
+      p = t_1;
+      return -1.0f;
     }
     
     
-    p = intersection;
-    return -1.0f;
+
+    
     }
     
     
