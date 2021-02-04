@@ -91,6 +91,64 @@ rt::Sphere::getMaterial( Point3 /* p */ )
 rt::Real
 rt::Sphere::rayIntersection( const Ray& ray, Point3& p )
 {
-  // TO DO
+  //3.1
+  //centre de la sphère
+  Point3 c = center;
+  //rayon de la sphère
+  rt::Real r = radius;
+
+  //origine du rayon
+  Point3 o = ray.origin;
+  //direction du rayon
+  Vector3 u = ray.direction;
+
+  //calcul distance entre c et [o,u)
+    //calcul distance entre c et o
+  Vector3 co = c-o;
+    //calcul dist
+  Vector3 d = co.dot(u)*u;
+  d = co - d;
+    //calcul dist²
+  rt::Real d2 = d.norm()*d.norm(); 
+  //calcul r² 
+  rt::Real r2 = r*r;
+  
+
+
+  if(d2<=r2){
+    //calculer les deux intesections t_1 et t_2
+    Point3 t_1,t_2;
+    rt::Real b = 2*(u.dot(co));
+    rt::Real c = (co.dot(co)-r2);
+    
+    rt::Real delta = b*b-4*c;
+    
+    
+    if(delta>=0){
+      //t_1 = (-b-sqrt(delta))/2a;
+      rt::Real t1 = (-b-sqrt(delta))/2;
+      //t_2 = (-b+sqrt(delta))/2a;
+      rt::Real t2 = (-b+sqrt(delta))/2;
+      t_1 = o + u*t1;
+      t_2 = o+ u*t2;
+
+
+    //recherche de la bonne intersection
+    Point3 intersection;
+    if(t1<0){
+      intersection = t_1;
+    }else{
+      intersection = t_2;
+    }
+    
+    
+    p = intersection;
+    return -1.0f;
+    }
+    
+    
+    
+  }
+
   return 1.0f;
 }

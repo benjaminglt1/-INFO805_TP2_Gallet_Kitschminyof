@@ -128,7 +128,21 @@ namespace rt {
       Real ri = ptrScene->rayIntersection( ray, obj_i, p_i );
       // Nothing was intersected
       if ( ri >= 0.0f ) return Color( 0.0, 0.0, 0.0 ); // some background color
-      return Color( 1.0, 1.0, 1.0 );
+
+      //3.3
+      //recuperation du materiau
+      Material m = obj_i->getMaterial(p_i);
+      
+      return Color(m.ambient[0]+m.diffuse[0],m.ambient[1]+m.diffuse[1],m.ambient[2]+m.diffuse[2]);
+    }
+
+    //3.4
+    Color rt::Renderer::illumination(const Ray& ray,GraphicalObject* obj,Point p ){
+      Material m = obj->getMaterial(p);
+      Color C = Color(0.0,0.0,0.0);
+      for(auto it = ptrScene->myLights.begin();it!=ptrScene->myLights.end();it++){
+
+      }
     }
 
   };
