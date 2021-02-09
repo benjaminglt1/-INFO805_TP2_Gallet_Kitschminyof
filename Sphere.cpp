@@ -107,8 +107,8 @@ rt::Sphere::rayIntersection( const Ray& ray, Point3& p )
     //calcul distance entre c et o
   Vector3 co = o-c;
   Vector3 v1 = co.dot(u)*u;
-  Vector3 v2 = co - v1;
-  rt::Real d = v2.norm();
+  v1 = co - v1;
+  rt::Real d = v1.norm();
 
     //calcul dist²
   rt::Real d2 = d*d; 
@@ -128,15 +128,14 @@ rt::Sphere::rayIntersection( const Ray& ray, Point3& p )
     
     if(delta>0){
       //t_1 = (-b-sqrt(delta))/2a;
-      rt::Real t1 = ((-1*b)-sqrt(delta))/2;
+      rt::Real t1 = ((-b)-sqrt(delta))/2;
       //t_2 = (-b+sqrt(delta))/2a;
-      rt::Real t2 = ((-1*b)+sqrt(delta))/2;
+      rt::Real t2 = ((-b)+sqrt(delta))/2;
       t_1 = o + u*t1;
       t_2 = o + u*t2;
 
 
     //recherche de la bonne intersection
-    Point3 intersection;
     if(t2<0.0f){
       return 1.0f;
     }

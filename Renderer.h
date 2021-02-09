@@ -13,6 +13,40 @@
 /// Namespace RayTracer
 namespace rt {
 
+//3.6
+struct Background {
+  virtual Color backgroundColor(const Ray& ray)=0;
+  };
+  
+  struct MyBackground:public Background {
+    Color backgroundColor(const Ray& ray){
+      //std::cout << "taille ray" << std::endl;
+      Color blanc = Color(1.0,1.0,1.0);
+      Color bleu = Color(0.0,0.0,1.0);
+      Color noir = Color(0.0,0.0,0.0);
+      Color res = Color(0.0,0.0,0.0);
+      if(ray.direction[2]<0){
+            Real x = -0.5f * ray.direction[ 0 ] / ray.direction[ 2 ];
+            Real y = -0.5f * ray.direction[ 1 ] / ray.direction[ 2 ];
+            Real d = sqrt( x*x + y*y );
+            Real t = std::min( d, 30.0f ) / 30.0f;
+            x -= floor( x );
+            y -= floor( y );
+            if ( ( ( x >= 0.5f ) && ( y >= 0.5f ) ) || ( ( x < 0.5f ) && ( y < 0.5f ) ) )
+            res += (1.0f - t)*Color( 0.2f, 0.2f, 0.2f ) + t * Color( 1.0f, 1.0f, 1.0f );
+            else
+            res += (1.0f - t)*Color( 0.4f, 0.4f, 0.4f ) + t * Color( 1.0f, 1.0f, 1.0f );
+      }
+      else if(ray.direction[2] >=0 && ray.direction[2]<=0.5){
+        
+        res = ((1.0-ray.direction[2])*blanc)+ray.direction[2]*bleu;
+      }else{
+        res = (((1.0-ray.direction[2])*blanc)+ray.direction[2]*bleu)+ray.direction[2]*noir;
+      }
+      
+      return res;
+    }
+  };
   inline void progressBar( std::ostream& output,
                            const double currentValue, const double maximumValue)
   {
@@ -45,6 +79,8 @@ namespace rt {
     output.flush();
   }
   
+
+
   /// This structure takes care of rendering a scene.
   struct Renderer {
 
@@ -65,11 +101,13 @@ namespace rt {
     /// corner pixel of the viewport, i.e. pixel (width,height)
     Vector3 myDirLR;
 
+    MyBackground* ptrBackground = new MyBackground();
+
     int myWidth;
     int myHeight;
 
     Renderer() : ptrScene( 0 ) {}
-    Renderer( Scene& scene ) : ptrScene( &scene ) {}
+    Renderer( Scene& scene):ptrScene(&scene){}
     void setScene( rt::Scene& aScene ) { ptrScene = &aScene; }
     
     void setViewBox( Point3 origin, 
@@ -126,23 +164,39 @@ namespace rt {
 
       // Look for intersection in this direction.
       Real ri = ptrScene->rayIntersection( ray, obj_i, p_i );
-      // Nothing was intersected
-      if ( ri >= 0.0f ) return Color( 0.0, 0.0, 0.0 ); // some background color
+      // Nothing was intersected 
+      //3.6      
+      if ( ri >= 0.0f ) return background(ray); // some background color
+
 
       //3.3
       //recuperation du materiau
-      /*
+      /*1
       Material m = obj_i->getMaterial(p_i);
       
       return Color(m.ambient[0]+m.diffuse[0],m.ambient[1]+m.diffuse[1],m.ambient[2]+m.diffuse[2]);
       */
      //3.4
-     return illumination(ray,obj_i,p_i);
+     
+     Color res = illumination(ray,obj_i,p_i);
+
+     //4.2
+     /*
+     Material m = obj_i->getMaterial(p_i);
+     if(ray.depth>0 && m.coef_reflexion!=0){
+       Ray ray_refl = Ray(reflect(ray.direction,obj_i->getNormal(p_i)),ray.direction,ray.depth-1);
+       Color C_refl = trace(ray_refl);
+       res = res + C_refl*m.specular*m.coef_reflexion;
+     }
+     res = res + illumination(ray,obj_i,p_i);
+     */
+     return res;
      
     }
 
-    //3.4
+    
     Color illumination(const Ray& ray,GraphicalObject* obj,Point3 p ){
+      //3.4
       Material m = obj->getMaterial(p);
       Color C = Color(0.0,0.0,0.0);
 
@@ -157,13 +211,90 @@ namespace rt {
           Color B = l->color(p);
 
           C = C + kd*D * B;
-          //C += kd*D;
+
+          //3.5
+          
+          Vector3 V = ray.direction;
+          Vector3 W = reflect(V,obj->getNormal(p));
+          Real Beta = W.dot(L);
+          if(Beta>0){
+            Real s = m.shinyness;
+            Real ks = pow(Beta,s);
+            //C = C +(ks*m.specular);
+          }
       }
-      return C+m.ambient;
+
+      Color res = C + m.ambient;
+      
+      //4.1
+      //res = shadow(ray,C);
+
+      return res;      
     }
 
+
+    //3.5
+    Vector3 reflect(const Vector3& W,Vector3 N) const{
+
+      if(W.dot(N)>0){
+        return W*(W.dot(N));
+      }else{
+        
+        return W*(1-W.dot(N));
+      }
+
+    }
+
+    //3.6
+    Color background( const Ray& ray ){
+      Color result = Color( 0.0, 0.0, 0.0 );
+      for ( Light* light : ptrScene->myLights )
+        {
+          Real cos_a = light->direction( ray.origin ).dot( ray.direction );
+          if ( cos_a > 0.99f )
+            {
+              Real a = acos( cos_a ) * 360.0 / M_PI / 8.0;
+              a = std::max( 1.0f - a, 0.0f );
+              result += light->color( ray.origin ) * a * a;
+            }
+        }
+      if ( ptrBackground != 0 ) {
+        result += ptrBackground->backgroundColor(ray);
+      }
+      
+      return result;
+    }
+
+    //4.1
+    Color shadow(const Ray& ray,Color light_color){
+      Point3 p = ray.origin;
+      Vector3 L = ray.direction;
+
+      Color C = light_color;
+      while(C.max()>0.003f){
+        p = p+L*0.01f;
+        GraphicalObject* o;
+        Point3 intersect;
+        if(ptrScene->rayIntersection(Ray(p,L),o,intersect)<0){
+          Material m = o->getMaterial(intersect);
+          C = C * (m.diffuse * m.coef_refraction);
+          p = intersect;
+
+        }else{
+          break;
+        }
+
+      }
+      return C;
+    }
   };
 
+  
+
+ 
+
 } // namespace rt
+
+
 
 #endif // #define _RENDERER_H_
