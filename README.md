@@ -16,12 +16,12 @@ M1-INFO     GRP-2
 
 3.4
 
+3.5
+
 3.6
 
 
 ## Questions partiellement traitées :
-
-3.5
 
 4.1
 

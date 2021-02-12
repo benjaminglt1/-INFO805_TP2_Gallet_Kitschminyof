@@ -217,7 +217,7 @@ struct Background {
           //3.5
           Vector3 V = ray.direction;
           Vector3 W = reflect(V,obj->getNormal(p));
-          Real Beta = W.dot(L)/W.norm()/L.norm();
+          Real Beta = W.dot(L)/(W.norm()*L.norm());
           if(Beta>0){
             Real s = m.shinyness;
             Real ks = pow(Beta,s);
@@ -225,7 +225,7 @@ struct Background {
           }
 
         //4.1
-        C = shadow(ray,l->color(L));
+        //C = shadow(ray,l->color(L));
       }
 
       Color res = C + m.ambient;
