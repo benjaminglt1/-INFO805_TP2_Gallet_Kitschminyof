@@ -8,6 +8,8 @@
 
 #include <QGLViewer/manipulatedFrame.h>
 #include "Light.h"
+#include "Color.h"
+#include "Material.h"
 
 /// Namespace RayTracer
 namespace rt {

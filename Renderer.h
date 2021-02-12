@@ -9,6 +9,11 @@
 #include "Color.h"
 #include "Image2D.h"
 #include "Ray.h"
+#include "Viewer.h"
+#include "GraphicalObject.h"
+#include "Light.h"
+#include "PointVector.h"
+#include "Scene.h"
 
 /// Namespace RayTracer
 namespace rt {
@@ -164,33 +169,40 @@ struct Background {
 
       // Look for intersection in this direction.
       Real ri = ptrScene->rayIntersection( ray, obj_i, p_i );
-      // Nothing was intersected 
+
       //3.6      
       if ( ri >= 0.0f ) return background(ray); // some background color
 
-
-      //3.3
-      //recuperation du materiau
-      /*1
+      Vector3 n = obj_i->getNormal(p_i) / obj_i->getNormal(p_i).norm();
       Material m = obj_i->getMaterial(p_i);
-      
-      return Color(m.ambient[0]+m.diffuse[0],m.ambient[1]+m.diffuse[1],m.ambient[2]+m.diffuse[2]);
-      */
-     //3.4
-     
-     Color res = illumination(ray,obj_i,p_i);
 
-     //4.2
-     /*
-     Material m = obj_i->getMaterial(p_i);
-     if(ray.depth>0 && m.coef_reflexion!=0){
-       Ray ray_refl = Ray(reflect(ray.direction,obj_i->getNormal(p_i)),ray.direction,ray.depth-1);
-       Color C_refl = trace(ray_refl);
-       res = res + C_refl*m.specular*m.coef_reflexion;
+     //4.2 Réflexions
+     if(ray.depth > 0 && m.coef_reflexion != 0){
+        Vector3 rayOut = reflect(ray.direction / ray.direction.norm(), n);
+        Ray ray_refl = Ray(ray.origin, rayOut, ray.depth-1);
+        Color c_refl = trace(ray_refl);
+        result += c_refl * m.specular * m.coef_reflexion;
      }
-     res = res + illumination(ray,obj_i,p_i);
-     */
-     return res;
+
+
+
+     //4.3 Refraction
+     if(ray.depth > 0 && m.coef_refraction != 0){
+         Ray ray_refr = refractionRay(ray, p_i, n, m);
+         Color c_refr = trace(ray_refr);
+         result = result + c_refr * m.diffuse * m.coef_refraction;
+     }
+
+    // result += illumination(ray, obj_i, p_i);
+
+     if(ray.depth == 0){
+         result += illumination(ray, obj_i, p_i);
+     }
+     else{
+         result += illumination(ray, obj_i, p_i) * m.coef_diffusion;
+     }
+
+     return result;
      
     }
 
@@ -200,48 +212,44 @@ struct Background {
       Material m = obj->getMaterial(p);
       Color C = Color(0.0,0.0,0.0);
 
+      //3.5) V la direction du rayon venant de l'oeil
+      Vector3 V = ray.direction;
+
       std::vector< Light* > lights = ptrScene->myLights;
       for ( Light* l : lights ){
-          Vector3 L = l->direction(p);
-          Vector3 N = obj->getNormal(p);
+          Vector3 L = l->direction(p) / l->direction(p).norm();
+          Vector3 N = obj->getNormal(p) / obj->getNormal(p).norm();
+
           Real kd = L.dot(N);
           if(kd<0) kd=0.0;
 
-          Color D = m.diffuse;
-          Color B = l->color(p);
-
-          C = C + kd*D * B;
+          Color light_color = l->color(p);
 
           //3.5
-          
-          Vector3 V = ray.direction;
-          Vector3 W = reflect(V,obj->getNormal(p));
-          Real Beta = W.dot(L);
+          Vector3 W = reflect(V,N);
+
+          Real Beta =  W.dot(L) / (W.norm() * L.norm());
+
+          Real ks = 0;
           if(Beta>0){
-            Real s = m.shinyness;
-            Real ks = pow(Beta,s);
-            //C = C +(ks*m.specular);
+              Real s = m.shinyness;
+              ks = pow(Beta,s);
           }
+
+           Color shadow_color = shadow(Ray(p, L), light_color);
+
+           C = C + kd * m.diffuse * light_color + ks * m.specular * shadow_color;
       }
-
-      Color res = C + m.ambient;
       
-      //4.1
-      //res = shadow(ray,C);
 
-      return res;      
+      return C + m.ambient;
     }
 
 
     //3.5
-    Vector3 reflect(const Vector3& W,Vector3 N) const{
-
-      if(W.dot(N)>0){
-        return W*(W.dot(N));
-      }else{
-        
-        return W*(1-W.dot(N));
-      }
+    Vector3 reflect(const Vector3& V,Vector3 N) const{
+        Vector3 ref = V - 2 * V.dot(N) * N;
+        return ref;// / ref.norm();
 
     }
 
@@ -268,29 +276,53 @@ struct Background {
     //4.1
     Color shadow(const Ray& ray,Color light_color){
       Point3 p = ray.origin;
-      Vector3 L = ray.direction;
-
+      Vector3 L = ray.direction / ray.direction.norm();
       Color C = light_color;
+
       while(C.max()>0.003f){
-        p = p+L*0.01f;
-        GraphicalObject* o;
-        Point3 intersect;
-        if(ptrScene->rayIntersection(Ray(p,L),o,intersect)<0){
-          Material m = o->getMaterial(intersect);
-          C = C * (m.diffuse * m.coef_refraction);
-          p = intersect;
+         //on décalle légèrement p
+         p = p + L * 0.01f;
+         Ray rayPrime = Ray(p, L);
+
+         GraphicalObject* object;
+         Point3 pPrime;
+
+        if(ptrScene->rayIntersection(rayPrime, object,pPrime) <= 0){
+            Material m = object->getMaterial(pPrime);
+            C = C * m.diffuse * m.coef_refraction;
+            p = pPrime;
 
         }else{
-          break;
+            break;
         }
 
       }
       return C;
     }
-  };
 
+
+    //4.3
+    Ray refractionRay(const Ray& aRay, const Point3& p, Vector3 N, const Material& m){
+        Vector3 V = aRay.direction / aRay.direction.norm();
+        Vector3 n = N/N.norm();
+        Real c = -n.dot(V);
+
+        Vector3 refract;
+
+        if(V.dot(n) < 0){
+            Real r = m.out_refractive_index/m.in_refractive_index;
+            refract = r*V + (r*c - sqrt(1 - r*r * (1 - c*c))) * n;
+        }
+        else{
+            Real r =  m.in_refractive_index/m.out_refractive_index;
+            refract = r*V + (r*c + sqrt(1 - r*r * (1 - c*c))) * n;
+        }
+
+        Vector3 vRefract = refract;// / refract.norm();
+        return Ray(p + vRefract * 0.0001f, vRefract, aRay.depth-1); //TODO ici quand je modif p je gagne de la transparance mais je perd ma boule verte
+   }
   
-
+  };
  
 
 } // namespace rt

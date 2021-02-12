@@ -121,7 +121,7 @@ namespace rt {
       m.shinyness = 0.6*128.0;
       m.coef_diffusion  = 0.15f;
       m.coef_reflexion  = 0.5f;
-      m.coef_refraction = 0.65f;
+      m.coef_refraction = 1.0f; //Modif ici ! ancienne valeur : 0.65
       m.in_refractive_index  = 1.5f;
       m.out_refractive_index = 1.0f;
       return m;
@@ -134,7 +134,7 @@ namespace rt {
       m.specular  = Color( 1.0, 1.0, 1.0 );
       m.shinyness = 80.0f;
       m.coef_diffusion  = 0.01f;
-      m.coef_reflexion  = 0.05f;
+      m.coef_reflexion  = 0.05f; //modif old 0.05f
       m.coef_refraction = 0.98f;
       m.in_refractive_index  = 1.5f;
       m.out_refractive_index = 1.0f;

@@ -9,6 +9,7 @@
 #include <cassert>
 #include <cmath>
 #include <array>
+#include <fstream>
 
 /// Namespace RayTracer
 namespace rt {

@@ -2,7 +2,7 @@
 @file Viewer.cpp
 @author JOL
 */
-#include <fstream>
+
 #include "Viewer.h"
 #include "Scene.h"
 #include "Renderer.h"

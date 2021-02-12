@@ -40,6 +40,10 @@ namespace rt {
       drawLight( light, zoom );
     }
 
+    /// Stores the scene
+    rt::Scene* ptrScene;
+
+
   protected :
     /// Called at each draw of the window
     virtual void draw();
@@ -50,8 +54,7 @@ namespace rt {
     /// Celled when pressing a key.
     virtual void keyPressEvent(QKeyEvent *e);
     
-    /// Stores the scene
-    rt::Scene* ptrScene;
+
 
     /// Maximum depth
     int maxDepth;
