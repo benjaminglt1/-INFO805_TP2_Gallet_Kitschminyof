@@ -221,11 +221,13 @@ struct Background {
           if(Beta>0){
             Real s = m.shinyness;
             Real ks = pow(Beta,s);
-            C = C + (B* ks * m.specular);
+            C = C + (ks * m.specular);
           }
 
         //4.1
-        //C = shadow(ray,l->color(L));
+        //C = C * shadow(ray,l->color(p));
+        Color shadowColor = shadow(Ray(p, L), B);
+        C = C * shadowColor;
       }
 
       Color res = C + m.ambient;
@@ -268,21 +270,26 @@ struct Background {
     }
 
     //4.1
-    Color shadow(const Ray& ray,Color light_color){
+   Color shadow(const Ray& ray,Color light_color){
       Point3 p = ray.origin;
       Vector3 L = ray.direction;
 
       Color C = light_color;
       while(C.max()>0.003f){
-        p = p+L*0.0001f;
-        GraphicalObject* o;
-        Point3 intersect;
-        if(ptrScene->rayIntersection(Ray(p,L),o,intersect)<0){
-          Material m = o->getMaterial(intersect);
+         //on décalle légèrement p
+         p = p + L * 0.01f;
+         Ray rayPrime = Ray(p, L);
+
+         GraphicalObject* object;
+         Point3 pPrime;
+
+        if(ptrScene->rayIntersection(rayPrime, object,pPrime)<= 0.0f){
+          Material m = object->getMaterial(pPrime);
           C = C * m.diffuse * m.coef_refraction;
-          p = intersect;
+          p = pPrime;
+
         }else{
-          break;
+            break;
         }
 
       }
