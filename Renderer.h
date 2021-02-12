@@ -177,20 +177,19 @@ struct Background {
       return Color(m.ambient[0]+m.diffuse[0],m.ambient[1]+m.diffuse[1],m.ambient[2]+m.diffuse[2]);
       */
      
-     //4.2
-     /*
+     //3.4
+     //result = illumination(ray,obj_i,p_i);
+   
+
+    //4.2
      Material m = obj_i->getMaterial(p_i);
      if(ray.depth>0 && m.coef_reflexion!=0){
-       Ray ray_refl = Ray(reflect(ray.direction,obj_i->getNormal(p_i)),ray.direction,ray.depth-1);
+       Ray ray_refl = Ray(ray.origin,reflect(ray.direction,obj_i->getNormal(p_i)),ray.depth-1);
        Color C_refl = trace(ray_refl);
        result = result + C_refl*m.specular*m.coef_reflexion;
      }
      result = result + illumination(ray,obj_i,p_i);
-     */
      
-     //3.4
-     result = illumination(ray,obj_i,p_i);
-   
      return result;
      
     }
