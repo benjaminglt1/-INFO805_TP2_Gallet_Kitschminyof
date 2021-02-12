@@ -176,21 +176,22 @@ struct Background {
       
       return Color(m.ambient[0]+m.diffuse[0],m.ambient[1]+m.diffuse[1],m.ambient[2]+m.diffuse[2]);
       */
-     //3.4
      
-     Color res = illumination(ray,obj_i,p_i);
-
      //4.2
      /*
      Material m = obj_i->getMaterial(p_i);
      if(ray.depth>0 && m.coef_reflexion!=0){
        Ray ray_refl = Ray(reflect(ray.direction,obj_i->getNormal(p_i)),ray.direction,ray.depth-1);
        Color C_refl = trace(ray_refl);
-       res = res + C_refl*m.specular*m.coef_reflexion;
+       result = result + C_refl*m.specular*m.coef_reflexion;
      }
-     res = res + illumination(ray,obj_i,p_i);
+     result = result + illumination(ray,obj_i,p_i);
      */
-     return res;
+     
+     //3.4
+     result = illumination(ray,obj_i,p_i);
+   
+     return result;
      
     }
 
@@ -206,28 +207,30 @@ struct Background {
           Vector3 N = obj->getNormal(p);
           Real kd = L.dot(N);
           if(kd<0) kd=0.0;
+          
 
           Color D = m.diffuse;
           Color B = l->color(p);
 
           C = C + kd*D * B;
-
-          //3.5
           
+          //3.5
           Vector3 V = ray.direction;
           Vector3 W = reflect(V,obj->getNormal(p));
-          Real Beta = W.dot(L);
+          Real Beta = W.dot(L)/W.norm()/L.norm();
           if(Beta>0){
             Real s = m.shinyness;
             Real ks = pow(Beta,s);
-            //C = C +(ks*m.specular);
+            C = C + (B* ks * m.specular);
           }
+
+        //4.1
+        C = shadow(ray,l->color(L));
       }
 
       Color res = C + m.ambient;
       
-      //4.1
-      //res = shadow(ray,C);
+      
 
       return res;      
     }
@@ -235,12 +238,11 @@ struct Background {
 
     //3.5
     Vector3 reflect(const Vector3& W,Vector3 N) const{
-
       if(W.dot(N)>0){
-        return W*(W.dot(N));
+        return Vector3(0.0,0.0,0.0);
       }else{
-        
-        return W*(1-W.dot(N));
+        return W - 2 * W.dot(N) * N;
+ 
       }
 
     }
@@ -272,14 +274,13 @@ struct Background {
 
       Color C = light_color;
       while(C.max()>0.003f){
-        p = p+L*0.01f;
+        p = p+L*0.0001f;
         GraphicalObject* o;
         Point3 intersect;
         if(ptrScene->rayIntersection(Ray(p,L),o,intersect)<0){
           Material m = o->getMaterial(intersect);
-          C = C * (m.diffuse * m.coef_refraction);
+          C = C * m.diffuse * m.coef_refraction;
           p = intersect;
-
         }else{
           break;
         }
